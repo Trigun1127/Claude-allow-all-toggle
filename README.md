@@ -1,438 +1,227 @@
 # Claude Permissions Toggle
 
-A dark-themed GUI for controlling Claude Code tool permissions with granular allow/block settings, fast write/edit bypasses, and optional visible auto-accept prompts.
+A Windows GUI for controlling Claude Code permissions with category-based auto-approval, destructive-command blocking, fast write/edit handling, and a compact minimal mode.
 
 ![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat&logo=windows&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat&logo=python&logoColor=white)
 
 ## Features
 
-- **Zero overhead when closed** - Hook auto-unregisters on close, Claude uses native behavior
-- **Auto-registers on open** - No installer needed, just launch the app
-- **Fast W/E mode** - Write/Edit/NotebookEdit can run without the permission dialog flash
-- **Approval display modes** - Choose `Silent` or `Show accepts` for allowed prompt-worthy tools
-- **Hot toggles** - Category changes take effect immediately while the hook is already loaded
-- **Two-layer system** - ALLOW categories + BLOCK specific patterns
-- **13 destructive patterns** blocked by default (rm -rf, git reset --hard, etc.)
-- **PowerShell-aware shell handling** - Windows `PowerShell` is classified and filtered alongside Bash
-- **Save custom templates** - Settings persist across app restarts
-- **Minimal mode** - Collapse to single ON/OFF toggle
-- **Dark theme** with scrollable UI
+- Auto-registers Claude Code hooks when opened
+- Removes hook registration when closed or turned OFF
+- Fast `Write` / `Edit` / `NotebookEdit` handling while W/E is enabled
+- Two approval styles: `Silent` and `Show accepts`
+- Category-based ALLOW toggles
+- Pattern-based BLOCK toggles for destructive commands
+- PowerShell-aware shell filtering
+- Saved custom templates
+- Minimal mode for quick ON/OFF control
 
-## Screenshot
+## Requirements
 
-```
-┌──────────────────────────────────────────┐
-│  Claude Permissions                      │
-│  CUSTOM - 5 allowed, 13 blocked          │
-├──────────────────────────────────────────┤
-│  [OFF] [ALL*] [ALL] [CUSTOM]    [Save]  │
-├──────────────────────────────────────────┤
-│  ALLOW (auto-approve):                   │
-│  ☑ Read files                           │
-│  ☑ Write files                          │
-│  ☑ Edit files                           │
-│  ☑ Search (Glob/Grep/ToolSearch)         │
-│  ☐ Web access                           │
-│  ☐ Notebook edit                        │
-│  ☑ Task/Todo tools                      │
-│  ☐ Bash (safe: npm, node, pip, ls)      │
-│  ☐ Bash (file deletion: rm, del, rmdir) │
-│  ☐ Bash (all commands)                  │
-│  ☐ Git commands                         │
-├──────────────────────────────────────────┤
-│  BLOCK (always deny):                    │
-│  ☑ rm -rf (recursive force delete)      │
-│  ☑ rm -rf / or ~ (root/home delete)     │
-│  ☑ git reset --hard                     │
-│  ☑ git checkout -- (discard changes)    │
-│  ☑ git clean -f                         │
-│  ☑ git push --force                     │
-│  ☑ git branch -D (force delete)         │
-│  ☑ git stash drop/clear                 │
-│  ☑ find -delete                         │
-│  ☑ xargs/parallel rm                    │
-│  ☑ dd if= (disk write)                  │
-│  ☑ mkfs (format disk)                   │
-│  ☑ chmod -R 777 /                       │
-└──────────────────────────────────────────┘
-```
+- Windows 10 or 11
+- Python 3.x
+- Claude Code CLI
 
-### Minimal Mode
-
-Click the `_` button to collapse into a compact split-toggle view:
-
-```
-┌────────────────────────────────┐
-│ [...] [✎] │ [   ALL*      ] │
-└────────────────────────────────┘
-```
-
-**Split Button Controls:**
-| Button | What it does |
-|--------|--------------|
-| `✎` | Toggle Write/Edit permissions (blue=ON, gray=OFF) |
-| `ALL*` / `CUSTOM` / etc. | Toggle all custom permissions ON/OFF |
-| `...` | Expand back to full UI |
-
-**States:**
-| Custom | ✎ | Title Bar | Result |
-|--------|---|-----------|--------|
-| OFF | (disabled) | `Claude: OFF` | Hook unregistered - Claude uses native behavior |
-| ON | OFF | `Claude: R/O\|ALL*\|SILENT` | Read-only, promptless auto-approvals where allowed |
-| ON | ON | `Claude: W/E\|ALL*\|SILENT` | Full custom with the cleanest no-prompt flow |
-| ON | ON | `Claude: W/E\|ALL*\|SHOW` | Full custom while the main window is set to visible approvals |
-
-**Use case:** Stay in read-only mode while exploring, then flip ✎ on when ready to make changes.
-
-- Remembers both states across restarts
-- ✎ controls: Write, Edit, NotebookEdit
-- Approval display still lives in the main window, not the minimal strip
-
-## Installation
+## Quick Start
 
 ```bash
 git clone https://github.com/Trigun1127/Claude-allow-all-toggle.git
 cd Claude-allow-all-toggle
 ```
 
-Then double-click `AutoYesToggle.pyw` to launch. That's it!
+Launch the app by opening `AutoYesToggle.pyw`.
 
-**Notes:**
-- **No installer needed** - The app registers the hook automatically when opened
-- **Auto-updates:** After `git pull`, changes take effect immediately
-- If you have multiple Python installations, the app uses whichever `python` runs it
-- If Claude Code was already open before the hook was registered, restart Claude Code once or review the change in `/hooks`
+Notes:
 
-### Pin to Taskbar (Optional)
+- No installer is required
+- The app registers the Claude hooks automatically when it opens
+- If Claude Code was already running, restart it once or review the hook change in `/hooks`
+- If multiple Python installations exist, the one used to launch `AutoYesToggle.pyw` is the one used by the hook
 
-Use `create_shortcut.ps1` to create a desktop shortcut, then pin it to the taskbar for one-click access:
+## Taskbar Shortcut
+
+To create a desktop shortcut that can be pinned to the taskbar:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File create_shortcut.ps1
 ```
 
-1. Right-click the new **Claude Permissions** shortcut on your desktop
-2. Select **Pin to taskbar**
-3. Delete the desktop shortcut (the taskbar pin persists independently)
+Then:
 
-Now you can launch the toggle directly from the taskbar without a desktop shortcut.
+1. Right-click the new `Claude Permissions` shortcut on the desktop
+2. Choose `Pin to taskbar`
+3. Delete the desktop shortcut if it is no longer needed
 
-## How It Works
+## Main Modes
 
-### App Lifecycle
+The app supports two main approval flows:
 
-| Event | What Happens |
-|-------|--------------|
-| **App opens** | Registers `PreToolUse` + `PermissionRequest` hooks in `~/.claude/settings.json` |
-| **W/E ON** | Temporarily adds `Write`, `Edit`, `NotebookEdit` to `permissions.allow` for a no-flash edit flow |
-| **Toggle OFF** | Unregisters hooks, removes managed W/E allow rules, Claude reverts to native behavior |
-| **App closes** | Unregisters hooks, removes managed W/E allow rules, Claude reverts to native behavior |
+- `Silent`: approved tools run without showing Claude's permission UI
+- `Show accepts`: Claude shows the permission UI, then the hook auto-accepts it
 
-When the app is closed **or toggled OFF**, there's **zero overhead** - no hook runs, no Python spawns. Claude Code uses its built-in permission logic.
+`Show accepts` is useful when the inline diff preview is helpful. `Silent` is the cleaner workflow when no prompt or diff view is desired.
 
-Your saved custom template and preferences (minimal mode, last template, ✎ state) persist across restarts.
+## Minimal Mode
 
-### Why Write/Edit Is Different
+Click `_` in the main window to collapse into minimal mode.
 
-Recent Claude Code builds can surface native file-permission UI through `PermissionRequest`, even when `PreToolUse` is already installed. To keep Write/Edit/NotebookEdit fast when W/E is ON, the toggle temporarily manages both:
+Minimal mode shows:
 
-- Hook decisions for `PreToolUse` and `PermissionRequest`
-- Matching `permissions.allow` entries for `Write`, `Edit`, and `NotebookEdit`
+- `...` to expand back to the full window
+- `✎` to toggle fast `Write` / `Edit` / `NotebookEdit`
+- The current template button such as `ALL*` or `CUSTOM`
 
-Those allow rules are only managed while the toggle is active. Turning W/E OFF or closing the app removes the rules it added, so Claude goes back to its normal prompts.
+Minimal mode does not show the approval-style control. `Silent` and `Show accepts` stay available in the main window only.
 
-### Approval Display Modes
+## What OFF, ALL*, ALL, and CUSTOM Do
 
-The toggle supports two approval-display behaviors for tools that Claude normally surfaces in a permission prompt:
+| Button | Behavior |
+|------|------|
+| `OFF` | Claude uses its normal permission behavior |
+| `ALL*` | Broad auto-approval with destructive patterns still blocked |
+| `ALL` | Broad auto-approval including destructive commands |
+| `CUSTOM` | Loads the saved custom checkbox state |
 
-- **Silent** - `PreToolUse` returns `allow`, so approved tools run without showing the permission UI
-- **Show accepts** - `PreToolUse` returns `ask`, then `PermissionRequest` immediately returns `allow`, so Claude shows the approval surface and auto-accepts it
+Use `Save` to store the current custom checkbox state.
 
-This gives you two distinct working styles:
+## How Permissions Work
 
-- **Silent** for a clean, collapsed workflow with no approval flash
-- **Show accepts** when you want to see Claude's permission UI and inline diff preview before the action proceeds
+The app combines two layers:
 
-`Show accepts` is intended for interactive Claude sessions. Non-interactive `claude -p` runs do not render approval dialogs the same way.
+1. `ALLOW`: categories that can be auto-approved
+2. `BLOCK`: specific dangerous patterns that are always denied
 
-### Recent Fixes
+Example:
 
-Recent updates in this repo include:
+- `Git` can be allowed in general
+- `git push --force` can still be blocked
 
-- Added explicit Windows `PowerShell` tool support and classified it alongside Bash shell tools
-- Added approval display modes: `Silent` and `Show accepts`
-- Added a true visible-approval path using `PreToolUse -> ask` plus `PermissionRequest -> allow`
-- Expanded tool mapping for newer Claude tools such as MCP resource readers and newer task/team/worktree actions
-- Hardened delete detection for PowerShell `Remove-Item` / `ri`
-- Hardened root/home delete blocking for quoted and slash-style PowerShell drive roots
-- Fixed state persistence so `approval_mode` survives normal app close and restart
-- Removed the approval toggle from minimal mode while keeping approval controls in the main window
+## Write/Edit Fast Path
 
-### Two-Layer Permission System
+When W/E is ON, the app temporarily adds these Claude permissions while the toggle is active:
 
-1. **ALLOW** = Categories of tools to auto-approve
-2. **BLOCK** = Specific dangerous patterns to always deny (even if category is allowed)
+- `Write`
+- `Edit`
+- `NotebookEdit`
 
-**Example:** You can allow "Git commands" but still block "git push --force".
+That avoids the prompt flash on recent Claude Code builds. Turning W/E OFF or closing the app removes only the managed rules added by the app.
 
-### Tool Categories
+## Category Mapping
 
-Each checkbox controls one or more Claude Code tools:
-
-| Category | Claude Tools |
-|----------|--------------|
+| Category | Claude tools |
+|------|------|
 | Read files | `Read` |
 | Write files | `Write` |
 | Edit files | `Edit` |
 | Search | `Glob`, `Grep`, `LSP`, `MCPSearch`, `ToolSearch`, `ListMcpResourcesTool` |
 | Web access | `WebFetch`, `WebSearch` |
 | Notebook edit | `NotebookEdit` |
-| Task/Todo tools | `Agent`, `Task`, `TodoWrite` (legacy), `AskUserQuestion`, `ExitPlanMode`, `Skill`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`, `TaskOutput`, `EnterPlanMode`, `EnterWorktree`, `ExitWorktree`, `CronCreate`, `CronDelete`, `CronList`, `SendMessage`, `TeamCreate`, `TeamDelete`, `TaskStop` |
-| Bash (safe) | Safe Bash and PowerShell commands: npm, node, python, pip, ls, cd, echo, `Get-ChildItem`, `Get-Content`, `Select-String`, etc. |
-| Bash (delete) | `rm`, `del`, `rmdir`, `rd`, `erase`, `unlink`, `shred`, `Remove-Item`, `ri` |
-| Bash (all) | `Bash`, `BashOutput`, `KillShell`, `Monitor`, `PowerShell` |
-| Git | Any Bash or PowerShell command containing `git` |
+| Task tools | `Agent`, `Task`, `TodoWrite`, `AskUserQuestion`, `ExitPlanMode`, `Skill`, `TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`, `TaskOutput`, `EnterPlanMode`, `EnterWorktree`, `ExitWorktree`, `CronCreate`, `CronDelete`, `CronList`, `SendMessage`, `TeamCreate`, `TeamDelete`, `TaskStop` |
+| Bash safe | safe Bash and PowerShell commands such as `npm`, `node`, `python`, `ls`, `Get-ChildItem`, `Get-Content`, `Select-String` |
+| Bash delete | `rm`, `del`, `rmdir`, `rd`, `erase`, `unlink`, `shred`, `Remove-Item`, `ri` |
+| Bash all | `Bash`, `BashOutput`, `KillShell`, `Monitor`, `PowerShell` |
+| Git | any Bash or PowerShell command containing `git` |
 
-**Note:** Claude Code tool names evolve over time. This hook supports both legacy names (`TodoWrite`, `Task`) and current Windows-aware tools such as `PowerShell`, `Monitor`, MCP resource readers, and newer task/team/worktree actions.
+## Special Overrides
 
-### Hook Response Format
+### Git override
 
-The toggle handles two Claude Code hook events:
+If `git` is OFF, git commands still ask for permission even if `bash_all` is ON.
 
-**`PreToolUse` response**
+### File deletion override
 
-```json
-{
-  "continue": true,
-  "suppressOutput": false,
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "allow|deny|ask",
-    "permissionDecisionReason": "Reason string"
-  }
-}
-```
+If `bash_delete` is OFF, file-deletion commands still ask for permission even if `bash_all` is ON.
 
-**`PermissionRequest` response**
+Detected delete commands include:
 
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PermissionRequest",
-    "decision": {
-      "behavior": "allow|deny"
-    }
-  }
-}
-```
+- `rm`
+- `del`
+- `rmdir`
+- `rd`
+- `erase`
+- `unlink`
+- `shred`
+- `Remove-Item`
+- `ri`
 
-If the hook emits no `PermissionRequest` decision, Claude shows its normal permission dialog.
-
-When approval display is set to `Show accepts`, the hook intentionally uses both stages together:
-
-- `PreToolUse` returns `ask` so the prompt can appear
-- `PermissionRequest` returns `allow` so the prompt is auto-accepted
-
-### Git Commands Override
-
-When `git=OFF`, git commands will **always** ask for permission, even if `bash_all=ON`. This ensures granular control over git operations.
-
-### File Deletion Override (bash_delete)
-
-When `bash_delete=OFF`, file deletion commands will **always** ask for permission, even if `bash_all=ON`. This lets you verify what's being deleted before it happens.
-
-**Detected deletion commands:**
-- `rm`, `del`, `rmdir`, `rd`, `erase`, `unlink`, `shred`
-- `Remove-Item`, `ri`
-
-**Why this matters:** Even if you trust Claude with general bash commands, accidental deletions can be catastrophic. With `bash_delete=OFF`, you get a prompt showing exactly what files will be deleted before approving.
-
-**Template defaults:**
-| Template | bash_delete |
-|----------|-------------|
-| OFF | OFF |
-| ALL* | **OFF** (always verify deletions) |
-| ALL | ON |
-
-### Chained Command Handling
-
-Claude often chains commands together (e.g., `cd /path && git push`). The hook properly handles these:
-
-**Git detection:** Checks ALL parts of a chained command for git operations:
-```bash
-# All detected as git commands:
-git push                      # Direct git command
-cd /path && git push          # Git in second part
-echo "done" && git status     # Git in chain
-VAR=x git push                # Git with env vars
-```
-
-**Safe bash detection:** Requires ALL parts to be safe:
-```bash
-# Safe (all parts in safe list):
-echo "test" && npm install
-
-# NOT safe (tasklist not in safe list):
-echo "test" && tasklist       # Falls through to bash_all check
-```
-
-**Delete detection:** Checks if ANY part is a deletion command:
-```bash
-# All detected as delete commands (when bash_delete=OFF):
-rm file.txt                   # Simple delete
-npm run build && rm -r dist   # Delete in chain
-ls -la; rm old.txt            # Delete after semicolon
-```
-
-This prevents bypassing permissions by prefixing commands with safe operations.
-
-### Testing
-
-Run the non-destructive regression suite:
+This also applies to chained commands such as:
 
 ```bash
-python test_patterns.py
-python test_state_preservation.py
+npm run build && rm -r dist
+ls -la; rm old.txt
 ```
 
-Coverage includes:
+## Blocked Patterns
 
-- destructive block patterns without executing them
-- delete-family detection, including env-wrapped shell deletes
-- current tool-name mapping
-- approval-display routing
-- permission precedence such as `git` and delete commands still asking even when `bash_all` is enabled
-- preserved config state written on close
+The default BLOCK list covers:
 
-### Templates
+- `rm -rf`
+- `rm -rf /` or home-directory deletes
+- `git reset --hard`
+- `git checkout --`
+- `git clean -f`
+- `git push --force`
+- `git branch -D`
+- `git stash drop` / `git stash clear`
+- `find -delete`
+- `xargs` or `parallel` with delete commands
+- `dd if=`
+- `mkfs`
+- `chmod -R 777 /`
 
-| Button | What it does |
-|--------|--------------|
-| **OFF** | Nothing auto-approved, Claude asks for everything |
-| **ALL*** | Everything allowed, but destructive patterns blocked (recommended) |
-| **ALL** | Everything allowed including destructive (dangerous!) |
-| **CUSTOM** | Loads your saved custom settings |
+## Config Files
 
-### Save Button
+The app uses two files:
 
-Click **Save** to store your current settings as a custom template. Later, click **CUSTOM** to restore them.
+- `~/.claude-permissions.json`
+- `~/.claude/settings.json`
 
-## Block Patterns
+`~/.claude-permissions.json` stores saved state such as the active template, minimal mode, W/E state, approval mode, and saved custom settings.
 
-Inspired by [claude-code-safety-net](https://github.com/kenryu42/claude-code-safety-net):
-
-| Pattern | What it catches |
-|---------|-----------------|
-| `rm -rf` | `rm -rf`, `rm -Rf`, `rm -fr` (case insensitive) |
-| `rm -rf / or ~` | Deleting root, home, $HOME, %USERPROFILE% |
-| `git reset --hard` | `--hard`, `--merge` |
-| `git checkout --` | Discarding file changes |
-| `git clean -f` | Force cleaning untracked files |
-| `git push --force` | `-f`, `--force`, `--force-with-lease` |
-| `git branch -D` | Force deleting branches |
-| `git stash drop/clear` | Losing stashed work |
-| `find -delete` | Mass file deletion |
-| `xargs/parallel rm` | Piped deletion commands |
-| `dd if=` | Raw disk writes |
-| `mkfs` | Formatting disks |
-| `chmod -R 777 /` | Dangerous recursive permissions |
-
-## Testing
-
-Verify all patterns work correctly (without executing anything dangerous):
-
-```bash
-python test_patterns.py
-```
-
-This runs 84 test cases against the block patterns and delete detection to ensure destructive commands are blocked and file deletions are properly detected.
-
-## Files
-
-| File | Purpose |
-|------|---------|
-| `AutoYesToggle.pyw` | Dark-themed GUI toggle |
-| `claude-permissions-hook.py` | Dual hook logic with pattern matching |
-| `install.py` | Installer / uninstaller |
-| `test_patterns.py` | Pattern verification test suite |
-
-## Config Location
-
-Two files matter:
-
-- `~/.claude-permissions.json` - Saved template, minimal mode, last template, write/edit state, and transient rule ownership
-- `~/.claude/settings.json` - Registered hooks and temporary `permissions.allow` entries while W/E is ON
-
-When the app closes, active permissions are cleared, managed allow rules are removed, and your saved template persists.
-
-## Uninstall
-
-Since the hook auto-unregisters when the app closes, simply closing the app is enough for normal use.
-
-To fully remove:
-```bash
-python install.py --uninstall       # Removes config files
-python install.py --uninstall --full  # Also removes project folder
-```
+`~/.claude/settings.json` stores the active Claude hook registration and temporary `permissions.allow` entries while W/E is ON.
 
 ## Troubleshooting
 
-### Hooks failing after Claude Code update ("hook error" on every tool)
+### Hook error after a Claude Code update
 
-**Symptom:** Every tool call shows a hook error or prompts for permission even though the toggle is ON. Claude Code logs may show `command not found` or `Hook output does not start with {`.
+If every tool suddenly starts asking for permission or Claude shows a hook error:
 
-**Cause:** Claude Code runs hook commands via Git Bash on Windows. If your hook was registered with raw Windows backslash paths (e.g. `C:\Users\...\python.exe`), Bash mangles them and the hook process fails before producing any JSON output. Claude Code then falls back to its default permission behavior (prompting for everything).
+1. Pull the latest repo changes
+2. Close and reopen `AutoYesToggle.pyw`, or run `python install.py`
+3. Restart Claude Code
 
-**Fix:**
+The hook command in `~/.claude/settings.json` should use quoted forward-slash paths, for example:
 
-1. **Update the repo:** `git pull` to get the latest version
-2. **Re-register the hook:** Either:
-   - Close and reopen `AutoYesToggle.pyw`, OR
-   - Run `python install.py`
-3. **Restart Claude Code** (hooks are snapshot at session startup)
-
-**Verify:** Check `~/.claude/settings.json` — the hook command should use **quoted forward-slash paths**:
 ```json
 "command": "\"C:/Users/.../python.exe\" \"C:/Users/.../claude-permissions-hook.py\""
 ```
 
-Not backslash paths like `C:\\Users\\...\\python.exe`.
+### Write/Edit still prompts
 
-**What changed:**
-- Hook commands now use quoted forward-slash paths compatible with both cmd.exe and Git Bash
-- `pythonw.exe` is replaced with `python.exe` (the GUI subsystem executable can't reliably pipe stdout when spawned by Claude Code)
-- Hook JSON responses include explicit `continue` and `suppressOutput` fields for latest Claude Code compatibility
+If `Write` or `Edit` still prompts:
 
-### Write/Edit still asks for permission or flashes briefly
+1. Reopen `AutoYesToggle.pyw`
+2. Start a fresh Claude Code session
+3. Confirm both hook events exist in `~/.claude/settings.json`
+4. Confirm `Write`, `Edit`, and `NotebookEdit` are present in `permissions.allow` while W/E is ON
 
-**Symptom:** Write/Edit works, but Claude briefly shows the native prompt or still asks every time.
+### Claude shows an error label even though permissions work
 
-**Fix:**
+This is a known Claude Code cosmetic issue:
 
-1. Close and reopen `AutoYesToggle.pyw` so the latest hook code is the running process
-2. Start a new Claude Code session, or review/reload the hook in `/hooks`
-3. Check `~/.claude/settings.json` and confirm both hook events are present:
-   - `hooks.PreToolUse`
-   - `hooks.PermissionRequest`
-4. While W/E is ON, confirm `permissions.allow` includes:
-   - `Write`
-   - `Edit`
-   - `NotebookEdit`
+[Claude Code issue #17088](https://github.com/anthropics/claude-code/issues/17088)
 
-**Expected behavior:**
-- W/E ON: write/edit tools should run without the prompt flash
-- W/E OFF: Claude should return to its normal permission prompt
+## Uninstall
 
-### Hook shows "error" label but permissions work fine
+Closing the app is enough for normal use because the hook is removed when the app closes or is turned OFF.
 
-This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/17088) (cosmetic only). If your permissions are actually being applied correctly, the "error" label can be ignored.
+To remove the project configuration:
 
-## Requirements
-
-- Windows 10/11
-- Python 3.x
-- Claude Code CLI
+```bash
+python install.py --uninstall
+python install.py --uninstall --full
+```
 
 ## License
 
